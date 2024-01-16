@@ -36,6 +36,4 @@
 # misc
 .DS_Store
 
-# excluded files/dirs
-test_suites/*
-preprocessing/*/output
+
