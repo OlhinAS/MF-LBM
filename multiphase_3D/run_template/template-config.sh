@@ -12,6 +12,7 @@ exec_location="../1.exec/MF_LBM.cpu"
 geometry_file="placeholder"
 # if pre-computed boundary info is used (geometry_preprocess_cmd = 2)
 geometry_boundary_info_file="placeholder"
+custom_fluid_distribution_file="placeholder"
 
 #------------------------ choose Linux or OSX system --------------------------------------
 # sed command is slightly different between Linux and OSX. 
@@ -32,6 +33,7 @@ cp $template_directory/template-path_info.txt path_info.txt
 sed $sed_option "s|exec_path_holder|$exec_location|" path_info.txt
 sed $sed_option "s|geometry_file_path_holder|$geometry_file|" path_info.txt
 sed $sed_option "s|geometry_boundary_file_path_holder|$geometry_boundary_info_file|" path_info.txt
+sed $sed_option "s|custom_fluid_distribution_path_holder|$custom_fluid_distribution_file|" path_info.txt
 cp $template_directory/clean.sh ./
 
 

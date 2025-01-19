@@ -20,6 +20,7 @@
 #  5 - a fluid1 drop located in the center of the domain: surface tension measurement
 #  6 - fluid1 and fluid2 raondomely distributed in the pore space with desired fluid1
 #      saturation: steady state relative perm measurement
+#  7 - fluid1 and fluid2 distributed in order provided within custom file in path_info.txt
 #  0 or else - error!                  
 initial_fluid_distribution_option 1
 

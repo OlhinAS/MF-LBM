@@ -247,8 +247,10 @@ subroutine initialization_new_multi
     use mpi_variable
     IMPLICIT NONE
     include 'mpif.h'
-    integer:: i,j,k ,m,n
+    integer:: i,j,k,l,m,n
     real(kind=8) :: temp,x,y,z,tempa,tempc,usqrt,udotc,random,rho1,rho2,ux1,uy1,uz1,z1,z2
+    LOGICAL :: ALIVE
+    integer :: error_signal = 0
 
     ntime0=1
     !initializing fluid
@@ -277,7 +279,7 @@ subroutine initialization_new_multi
     !$OMP parallel DO private(i,j,x,y,z,random) collapse(2)
     do k=1-overlap_phi,nz+overlap_phi
         do j=1-overlap_phi,ny+overlap_phi
-            do i=1-overlap_phi,nx+overlap_phi              
+            do i=1-overlap_phi,nx+overlap_phi
                 x = idx*nx + i
                 y = idy*ny + j
                 z = idz*nz + k
@@ -312,11 +314,16 @@ subroutine initialization_new_multi
                     if(random>Sa_target)then
                         phi(i,j,k) = -1d0
                     endif
-                else   
+                elseif(initial_fluid_distribution_option==7)then
+                    l = idx*nx + i
+                    m = idy*ny + j
+                    n = idz*nz + k
+                    phi(i,j,k) = phi_global(l,m,n)
+                else
                     if(id==0)print*,'Input parameter initial_fluid_distribution_option error! Stop program!!!'
                     call MPI_Barrier(MPI_COMM_vgrid,ierr)
-                    call mpi_abort(MPI_COMM_vgrid,ierr)                 
-                endif     
+                    call mpi_abort(MPI_COMM_vgrid,ierr)
+                endif
             enddo
         enddo
     enddo
@@ -330,7 +337,7 @@ subroutine initialization_new_multi
                     z = idz*nz + k
                     if(z<=0)then
                         phi(i,j,k) = phi_inlet   ! phi_inlet = 2d0*sa_inject-1d0, inlet BC order parameter, consistent with injecting fluid saturation
-                    endif                     
+                    endif
                 enddo
             enddo
         enddo
@@ -348,6 +355,10 @@ subroutine initialization_new_multi
                 enddo
             enddo
         enddo
+    endif
+
+    if(initial_fluid_distribution_option==7)then
+        if(allocated(phi_global)) deallocate(phi_global)
     endif
 
     return

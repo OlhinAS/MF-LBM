@@ -11,7 +11,8 @@ module Misc_module
 
     ! job status: new_simulation; continue_simulation; simulation_done; simulation_failed
     character(len=100) :: job_status
-    character(len=200) :: geo_file_path, geo_boundary_file_path 
+    character(len=200) :: geo_file_path, geo_boundary_file_path
+    character(len=200) :: custom_distr_file_path
 
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ input commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     !1 - simulation ends ; 0 - initial value (exceed max time step) ; 2 - simulation not finished, but save data and exit program; 3 - simulation failed
@@ -201,7 +202,8 @@ MODULE Fluid_multiphase
 
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ fluid ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     real(kind=8),ALLOCATABLE,DIMENSION(:,:,:) :: g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18      !fluid PDF2
-    real(kind=8),ALLOCATABLE,DIMENSION(:,:,:) :: phi,cn_x,cn_y,cn_z,c_norm,curv          !order parameter, phase gradient, curvature, norm of color gradient
+    real(kind=8),ALLOCATABLE,DIMENSION(:,:,:) :: phi,phi_global,cn_x,cn_y,cn_z,c_norm,curv          !order parameter, phase gradient, curvature, norm of color gradient
+    real(kind=4), allocatable :: phi_temp(:,:,:)  ! Temporary array for phi loading
     real(kind=8),ALLOCATABLE,DIMENSION(:,:,:) :: phi_old   !using the phase field difference to indicate steady state
 
     !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ flow condition ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 

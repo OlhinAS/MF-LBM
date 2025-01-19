@@ -56,6 +56,10 @@ subroutine set_walls
             read(11,'(A)')geo_file_path   ! read geometry file path
             read(11,'(A)')dummy
             read(11,'(A)')geo_boundary_file_path   ! read geometry boundary info file path
+            if(initial_fluid_distribution_option==7)then
+                read(11,'(A)')dummy
+                read(11,'(A)')custom_distr_file_path   ! read custom distribution file path
+            endif
             close(11)
         else
             if(id==0)print*,'Error! path_info.txt is not found! Exiting program!'
@@ -70,6 +74,16 @@ subroutine set_walls
             if(id==0)print*,'Error! No external geometry file found! Exiting program!'
             call MPI_Barrier(MPI_COMM_WORLD,ierr)
             call mpi_abort(MPI_COMM_WORLD,ierr)
+        endif
+        if(initial_fluid_distribution_option==7)then
+            INQUIRE(FILE=trim(custom_distr_file_path),EXIST=ALIVE)
+            if(alive)then
+                call read_custom_phi_distr
+            else
+                if(id==0)print*,'Error! No custom fluid distribution file found! Exiting program!'
+                call MPI_Barrier(MPI_COMM_WORLD,ierr)
+                call mpi_abort(MPI_COMM_WORLD,ierr)
+            endif
         endif
     else
         if(id==0)print*, 'This simulation does not use external geometry data!'
@@ -293,6 +307,72 @@ subroutine read_walls
 
     return
 end subroutine read_walls
+
+!***************************** read custom fluid distribution in scene ************************************
+subroutine read_custom_phi_distr
+    use Misc_module
+    use Fluid_multiphase   ! This module contains phi and phi_global declarations
+    use mpi_variable
+    IMPLICIT NONE
+    include 'mpif.h'
+    integer :: i,j,k,l,m,n, nx_distr_domain, ny_distr_domain, nz_distr_domain
+    character (len=300) :: dummy
+    integer :: error_signal
+
+    ! All ranks allocate phi_global
+    allocate(phi_global(1:nxGlobal,1:nyGlobal,1:nzGlobal))
+
+    error_signal = 0
+    if(id==0)then
+        OPEN(UNIT=11,FILE='./path_info.txt',action='READ')
+        read(11,'(A)')dummy
+        read(11,'(A)')dummy
+        read(11,'(A)')dummy  ! skip three lines
+        read(11,'(A)')dummy   ! skip geometry file path
+        read(11,'(A)')dummy
+        read(11,'(A)')dummy   ! skip geometry bc file path
+        read(11,'(A)')dummy
+        read(11,'(A)')custom_distr_file_path   ! read custom distribution file path
+        close(11)
+        OPEN(UNIT=9,FILE=trim(adjustl(custom_distr_file_path)),STATUS='OLD',FORM='UNFORMATTED',access='stream')
+        read(9)nx_distr_domain,ny_distr_domain,nz_distr_domain
+        write(*,"(' Custom distribution domain size: nx=', I5, ', ny=', I5,', nz=', I5)")nx_distr_domain,ny_distr_domain,nz_distr_domain
+        if(nx_distr_domain/=nxGlobal.or.ny_distr_domain/=nyGlobal.or.nz_distr_domain/=nzGlobal)then
+            print*,'Error! Fluid domain size is different to the geometry domain! Exiting program!'
+            error_signal = 1
+        else
+            ! Allocate temporary array for 32-bit floats
+            allocate(phi_temp(nx_distr_domain,ny_distr_domain,nz_distr_domain))
+            ! Read as 32-bit floats
+            read(9)(((phi_temp(i,j,k),i=1,nx_distr_domain),j=1,ny_distr_domain),k=1,nz_distr_domain)
+            ! Convert to 64-bit floats
+            phi_global = real(phi_temp, kind=8)
+            deallocate(phi_temp)
+        endif
+        close(9)
+
+        if(domain_wall_status_x_max==1.and.domain_wall_status_y_max==1)then
+            !$OMP PARALLEL DO private(i,j)
+            do k=1,nzglobal
+                do j=1,nyglobal
+                    do i=1,nxglobal
+                        if(j>=ny_distr_domain.or.i>=nx_distr_domain)phi_global(i,j,k)=0d0   !pad with no fluid
+                    enddo
+                enddo
+            enddo
+        endif
+    endif
+
+    call MPI_Bcast(error_signal,1,MPI_INTEGER,0,MPI_COMM_VGRID,ierr)
+    if(error_signal == 1)call mpi_abort(MPI_COMM_WORLD,ierr)
+
+    ! Broadcast phi_global to all ranks
+    if(id==0)then
+        call MPI_Bcast(phi_global,nxGlobal*nyGlobal*nzGlobal,MPI_DOUBLE_PRECISION,0,MPI_COMM_VGRID,ierr)
+    endif
+
+    return
+end subroutine read_custom_phi_distr
 
 !*******************************pore profile*************************************
 subroutine pore_profile
